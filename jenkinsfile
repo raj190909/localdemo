@@ -12,7 +12,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 // Checkout the code from GitLab repository
-                git 'http://eros.narola.onlne/git/raj/simple-maven-project.git'
+                git 'https://github.com/raj190909/localdemo.git'
             }
         }
 
