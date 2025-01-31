@@ -1,0 +1,75 @@
+pipeline {
+    agent any
+
+    environment {
+        LOCAL_MACHINE_IP = '10.0.2.15'  // IP address of your local machine
+        LOCAL_USER = 'vboxuser'          // Your local machine's username
+        DEPLOY_PATH = '/linuxdemo/newfolder/demo3'   // Path on your local machine
+        BUILD_DIR = '/var/lib/jenkins/workspace/maven-demo/target/my-app-1.0-SNAPSHOT.jar'              // Directory where your build artifacts (e.g., .jar) are stored
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                // Checkout the code from GitLab repository
+                git 'http://eros.narola.onlne/git/raj/simple-maven-project.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                // Build your project (e.g., using Maven or Gradle)
+                sh 'mvn clean install'  // For Maven projects
+                // Or if using Gradle: sh './gradlew build'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                // Run your tests
+                sh 'mvn test'  // For Maven-based projects
+                // Or if using Gradle: sh './gradlew test'
+            }
+        }
+
+        stage('Deploy to Local Machine') {
+            steps {
+                script {
+                    echo "Deploying to local machine..."
+
+                    // SCP (secure copy) to deploy the .jar or .war file to your local machine
+                    sh """
+                        scp ${BUILD_DIR}/ ${LOCAL_USER}@${LOCAL_MACHINE_IP}:${DEPLOY_PATH}
+                    """
+                    
+                    // Alternatively, use Rsync if needed for incremental deployment
+                    // sh """
+                    //     rsync -avz ${BUILD_DIR}/ ${LOCAL_USER}@${LOCAL_MACHINE_IP}:${DEPLOY_PATH}
+                    // """
+                }
+            }
+        }
+
+        stage('Post-deployment Verification') {
+            steps {
+                script {
+                    echo "Verifying deployment..."
+                    
+                    // Optionally verify the deployment (e.g., check if the app is running on the local machine)
+                    sh """
+                        ssh -i /home/vboxuser/.ssh/id_rsa ${LOCAL_USER}@${LOCAL_MACHINE_IP} 'curl -f http://10.0.2.15:8080 || exit 1'
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Deployment to local machine was successful!"
+        }
+        failure {
+            echo "Deployment failed!"
+        }
+    }
+}
